@@ -2,13 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Repositories\TeamsRepository;
+
 use Illuminate\Http\Request;
 use App\Http\Requests\TeamsFormRequest;
+
 use App\Models\Team;
-use App\Models\Player;
+
 
 class TeamController extends Controller
 {
+    public function __construct(private TeamsRepository $repository)
+    {
+
+    }
+
     public function index()
     {
         $teams = Team::all();
@@ -24,20 +32,7 @@ class TeamController extends Controller
 
     public function store(TeamsFormRequest $request)
     {
-        $team = Team::create($request->all());
-
-        $players = [];
-        for($i = 1; $i <= $request->player; $i++) {
-            $players[] = ([
-                'teams_id' => $team->id,
-                'number' => $i
-            ]);
-        }
-        Player::insert($players);
-
-        $team->court()->create([
-            'name' => $request->court,
-        ]);
+        $team = $this->repository->add($request);
 
         return to_route('teams.index')->with('success.message', "Time '{$team->city} {$team->name}' adcionado com sucesso!");
     }
@@ -52,7 +47,10 @@ class TeamController extends Controller
 
     public function edit(Team $team)
     {
-        return view('teams.edit', compact('team'));
+        $players = $team->players;
+        $court = $team->court;
+
+        return view('teams.edit', compact('team', 'court', 'players'));
     }
 
     public function update(TeamsFormRequest $request, Team $team)
