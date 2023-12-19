@@ -5,12 +5,13 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Requests\TeamsFormRequest;
 use App\Models\Team;
+use App\Models\Player;
 
 class TeamController extends Controller
 {
     public function index()
     {
-        $teams = Team::query()->orderBy('name', 'desc')->get();
+        $teams = Team::all();
         $successMessage = session('success.message');
 
         return view('teams.index', compact('teams', 'successMessage'));
@@ -25,7 +26,28 @@ class TeamController extends Controller
     {
         $team = Team::create($request->all());
 
+        $players = [];
+        for($i = 1; $i <= $request->player; $i++) {
+            $players[] = ([
+                'teams_id' => $team->id,
+                'number' => $i
+            ]);
+        }
+        Player::insert($players);
+
+        $team->court()->create([
+            'name' => $request->court,
+        ]);
+
         return to_route('teams.index')->with('success.message', "Time '{$team->city} {$team->name}' adcionado com sucesso!");
+    }
+
+    public function show(Team $team)
+    {
+        $players = $team->players;
+        $court = $team->court;
+
+        return view('teams.show', compact('players', 'court', 'team'));
     }
 
     public function edit(Team $team)
